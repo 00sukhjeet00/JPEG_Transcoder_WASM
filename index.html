@@ -1,69 +1,101 @@
 <!DOCTYPE html>
 <html>
-  <head>
-  </head>
-  <body style="{ font-face: sans-serif; }">
-    <script src="jpgsquash.js"></script>
-    <script>
-      var wasm_loaded = false;
-      Module.onRuntimeInitialized = function() { wasm_loaded = true; }
-      function squash_jpg_blob(source, quality) {
-        if (!wasm_loaded) {
-          return undefined;
-        }
-        return Module._jpg_transcode(source, quality);
+
+<head>
+  <title>WASM_JPG</title>
+</head>
+<style>
+  body {
+    background-color: #ececec;
+    font-family: 'Poppins';
+    letter-spacing: 1px;
+  }
+
+  .download {
+    margin-top: 2rem;
+    padding: 1rem 2rem;
+    background-color: teal;
+    border: none;
+    border-radius: 10px;
+    color: white;
+    font-size: large;
+    letter-spacing: 1px;
+  }
+</style>
+
+<body>
+  <script src="jpgsquash.js"></script>
+  <script>
+    var wasm_loaded = false;
+    Module.onRuntimeInitialized = function () { wasm_loaded = true; }
+    function squash_jpg_blob(source, quality) {
+      if (!wasm_loaded) {
+        return undefined;
       }
-    </script>
-    <center>
-      <h2>JPEG TRANSCODER</h2>
-      <input type="file" id="files" name="files[]" onchange="makeURL(this)"/>
-      <input type="range" min="1" max="100" value="5" step="1" id="myRange" onchange="HandleQuality(this)">
-      <div style="display:inline"><span>&nbsp;</span>Q:&nbsp;
-        <span id="qual">5</span>
-        &nbsp;==&nbsp;
-        <span id="sizekb">0</span>&nbsp;kBytes</div>
-      <div style="display: flex; justify-content: space-evenly;margin-top: 2rem;">
-        <img src="" alt="" width="600" height=400" id="left">
-        <img src="" alt="" width="600" height="400" id="right">
-      </div>
-    </center>
-    <script>
-      var leftIMG=document.getElementById('left');
-      var rightIMG=document.getElementById('right');
-      var fileArray;
-      rightIMG;
-      async function makeURL(input) {
-        var file=input.files[0];
-        var read=new FileReader();
-        read.onload=function(evt){
-          var blob=makeBlob(evt.target.result)
-          leftIMG.src=blob
-          fileArray=evt.target.result;
-          RightIMG(fileArray,5)
-        }
-        await read.readAsArrayBuffer(file);
+      return Module._jpg_transcode(source, quality);
+    }
+  </script>
+  <center>
+    <h2>JPEG TRANSCODER</h2>
+    <input type="file" id="files" name="files[]" onchange="makeURL(this)" />
+    <input type="range" min="1" max="100" value="5" step="1" id="myRange" onchange="HandleQuality(this)">
+    <div style="display:inline"><span>&nbsp;</span>Q:&nbsp;
+      <span id="qual">5</span>
+      &nbsp;==&nbsp;
+      <span id="sizekb">0</span>&nbsp;kBytes
+    </div>
+    <div style="display: flex; justify-content: space-evenly;margin-top: 2rem;">
+      <img src="" alt="" width="600" height=400" id="left">
+      <img src="" alt="" width="600" height="400" id="right" download="IMG">
+    </div>
+    <button class="download" onclick="downloadIMG()">Download</button>
+  </center>
+  <script>
+    var leftIMG = document.getElementById('left');
+    var rightIMG = document.getElementById('right');
+    var fileArray;
+    rightIMG;
+    url;
+    async function makeURL(input) {
+      var file = input.files[0];
+      var read = new FileReader();
+      read.onload = function (evt) {
+        var blob = makeBlob(evt.target.result)
+        leftIMG.src = blob
+        fileArray = evt.target.result;
+        RightIMG(fileArray, 5)
       }
-      function makeBlob(img) {
-        var blob;
-        blob=new Blob([img], {type: "image/jpeg"});
-        return URL.createObjectURL(blob);
-      }
-      function RightIMG(fileArray,Q) {
-        var len=fileArray.byteLength;
-        var buffer=Module._malloc(len);
-        Module.HEAPU8.set(new Uint8Array(fileArray), buffer);
-        var size=Module._jpg_transcode(buffer,len,Q);
-        var result=new Uint8Array(Module.HEAPU8.buffer,buffer,len);
-        var url=makeBlob(result)
-        document.getElementById('sizekb').innerHTML=size;
-        rightIMG.src=url
-        Module._free(buffer);
-      }
-      function HandleQuality(evt){
-        Q=evt.value
-        document.getElementById('qual').innerHTML=Q;
-        RightIMG(fileArray,Q);
-      }
-     </script>
-  </body>
+      await read.readAsArrayBuffer(file);
+    }
+    function makeBlob(img) {
+      var blob;
+      blob = new Blob([img], { type: "image/jpeg" });
+      return URL.createObjectURL(blob);
+    }
+    function downloadIMG() {
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'image.jpg');
+      document.body.appendChild(link);
+      link.click();
+    }
+    function RightIMG(fileArray, Q) {
+      var len = fileArray.byteLength;
+      var buffer = Module._malloc(len);
+      Module.HEAPU8.set(new Uint8Array(fileArray), buffer);
+      var size = Module._jpg_transcode(buffer, len, Q);
+      var result = new Uint8Array(Module.HEAPU8.buffer, buffer, len);
+      url = makeBlob(result)
+      document.getElementById('sizekb').innerHTML = size;
+      rightIMG.src = url
+      Module._free(buffer);
+    }
+    function HandleQuality(evt) {
+      Q = evt.value
+      document.getElementById('qual').innerHTML = Q;
+      RightIMG(fileArray, Q);
+    }
+  </script>
+</body>
+
 </html>
